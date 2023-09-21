@@ -1,0 +1,40 @@
+---
+- name: Volume install packages
+  apt:
+    name: "{{ volume__default_packages }}"
+    update_cache: yes
+    state: present
+  when: volume__install
+
+- name: Create new LVM volume
+  lvol:
+    vg: "{{ volume__groups[item.group]['vgname'] }}"
+    lv: "{{ item.name }}"
+    size: "{{ item.size }}"
+    state: present
+    active: yes
+  with_items: "{{ volume__list }}"
+  register: new_lvm
+  when:
+    - volume__configure
+    - volume__list is defined
+    - item.status == "active"
+    - volume__groups is defined
+    - item.group in volume__groups
+    - volume__groups[item.group]['type'] == "lvm"
+  
+- name: Create/resize filesystem on new LVM
+  filesystem:
+    fstype: "{{ item.fstype|default(volume__default_fstype) }}"
+    dev: "/dev/{{ volume__groups[item.group]['vgname'] }}/{{ item.name }}"
+    force: no
+    resizefs: yes
+  with_items: "{{ volume__list }}"
+  when:
+    - volume__configure
+    - volume__list is defined
+    - item.status == "active"
+    - volume__groups is defined
+    - item.group in volume__groups
+    - volume__groups[item.group]['type'] == "lvm"
+    - new_lvm.changed

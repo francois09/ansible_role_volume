@@ -1,0 +1,8 @@
+---
+# Default do nothing
+volume__install: False
+volume__configure: False
+
+# defaults file for volume
+volume__default_packages: []
+volume__default_fstype: ext4
